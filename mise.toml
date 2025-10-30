@@ -1,0 +1,10 @@
+[tools]
+# node = "lts"
+# python = "3.12"
+# go = "1.22"
+# rust = "stable"
+# aws-cli = "latest"
+# gcloud = "latest"
+# azure-cli = "latest"
+# kubectl = "latest"
+# helm = "latest"

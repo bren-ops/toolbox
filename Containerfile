@@ -29,18 +29,7 @@ source ~/.cache/starship/init.nu
 EOF
 
 # Starter mise config
-RUN cat > /tmp/mise.toml <<'EOF'
-[tools]
-# node = "lts"
-# python = "3.12"
-# go = "1.22"
-# rust = "stable"
-# aws-cli = "latest"
-# gcloud = "latest"
-# azure-cli = "latest"
-# kubectl = "latest"
-# helm = "latest"
-EOF
+COPY mise.toml /tmp/mise.toml
 
 
 # ============================================================
@@ -148,16 +137,9 @@ RUN install -d -m 0755 /etc/skel && cp /root/.mise.toml /etc/skel/.mise.toml
 RUN npm install -g sst opencode-ai
 
 # ---- Example boot-only service ----
-RUN mkdir -p /etc/systemd/system && bash -lc 'cat > /etc/systemd/system/hello-on-boot.service <<EOF
-[Unit]
-Description=Say hello on boot (boot mode only)
-ConditionVirtualization=!container
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/printf "Hello from booted DevOS!\\n" | /usr/bin/tee /etc/hello.txt
-[Install]
-WantedBy=multi-user.target
-EOF' && systemctl enable hello-on-boot.service || true
+RUN mkdir -p /etc/systemd/system
+COPY hello-on-boot.service /etc/systemd/system/hello-on-boot.service
+RUN systemctl enable hello-on-boot.service || true
 
 # ---- Entry ----
 RUN printf '%s\n' '#!/bin/sh' \

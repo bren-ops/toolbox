@@ -1,0 +1,8 @@
+[Unit]
+Description=Say hello on boot (boot mode only)
+ConditionVirtualization=!container
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/printf "Hello from booted DevOS!\\n" | /usr/bin/tee /etc/hello.txt
+[Install]
+WantedBy=multi-user.target
