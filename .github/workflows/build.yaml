@@ -1,0 +1,51 @@
+name: build-only
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*", "V*" ]
+  pull_request:
+    branches: [ "main" ]
+
+# No package publish needed
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }} @ ${{ matrix.platforms }}) — no push
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [toolbox, bootc]
+        platforms: [linux/amd64]   # add linux/arm64 if you want to test multi-arch (no push)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (only needed if building arm64 on amd64)
+        if: contains(matrix.platforms, 'arm64')
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.platforms }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build only (no login, no push)
+      - name: Build ${{ matrix.target }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Containerfile
+          target: ${{ matrix.target }}
+          platforms: ${{ matrix.platforms }}
+          push: false
+          # optional caching to speed subsequent CI runs:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # disable provenance attestations for faster builds
+          provenance: false
