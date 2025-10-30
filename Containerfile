@@ -31,12 +31,6 @@ EOF
 # Starter mise config
 COPY mise.toml /tmp/mise.toml
 
-
-# ============================================================
-# Stage 1: toolbox image
-# ============================================================
-FROM fedora:latest AS toolbox
-
 ENV DNF_YUM_AUTO_YES=1 DNF_YUM_PACKAGE_PROMPT_TIMEOUT=0 \
     PATH="/root/.local/bin:/usr/local/bin:${PATH}" \
     SHELL=/usr/bin/nu
@@ -58,69 +52,17 @@ RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd || true
 RUN dnf4 copr enable -y atim/lazygit && \
     dnf4 install -y lazygit && dnf4 clean all
 
-# ---- Install mise + starship from builder ----
-COPY --from=builder /tmp/starship-install.sh /tmp/
-RUN /tmp/starship-install.sh -y && rm -f /tmp/starship-install.sh
-COPY --from=builder /tmp/mise-install.sh /tmp/
-RUN /tmp/mise-install.sh && rm -f /tmp/mise-install.sh
-
-# Configs
-COPY --from=builder /tmp/etc/starship.toml /etc/starship.toml
-COPY --from=builder /tmp/etc/nu/config.nu /etc/nu/config.nu
-
-# Shell activations: starship + mise + atuin
-RUN printf '\n# starship\n eval "$(starship init bash)"\n' >> /etc/bashrc && \
-    printf '\n# mise activation\n eval "$(/root/.local/bin/mise activate bash)"\n' >> /etc/bashrc && \
-    printf '\n# atuin (bash)\n eval "$(atuin init bash)"\n' >> /etc/bashrc && \
-    printf '\n# mise for Nushell\nsource (/root/.local/bin/mise activate nu)\n' >> /etc/nu/config.nu && \
-    printf '\n# atuin (nushell)\natuin init nu | save --force ~/.cache/atuin/init.nu\nsource ~/.cache/atuin/init.nu\n' >> /etc/nu/config.nu
-
-# Starter mise config
-COPY --from=builder /tmp/mise.toml /root/.mise.toml
-RUN install -d -m 0755 /etc/skel && cp /root/.mise.toml /etc/skel/.mise.toml
-
-# ---- Install SST and OpenCode globally ----
-RUN npm install -g sst opencode-ai
-
-# ---- Entry ----
-RUN printf '%s\n' '#!/bin/sh' \
-                 'if [ -f /run/.containerenv ] || grep -q container= /proc/1/environ 2>/dev/null; then exec /usr/bin/nu; fi' \
-                 'exec /usr/bin/nu' > /usr/local/bin/entrypoint.sh && \
-    chmod +x /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-
-LABEL org.opencontainers.image.title="DevOS Toolbox (Nushell + mise + starship + Atuin + SST/OpenCode)"
-
-
-# ============================================================
-# Stage 2: bootc image (bootable OS)
-# ============================================================
-FROM quay.io/fedora/fedora-bootc:latest AS bootc
-
 ENV DNF_YUM_AUTO_YES=1 DNF_YUM_PACKAGE_PROMPT_TIMEOUT=0 \
     PATH="/root/.local/bin:/usr/local/bin:${PATH}" \
     SHELL=/usr/bin/nu
 
-# ---- Same core utilities ----
-RUN dnf install -y \
-      nu micro \
-      fd-find ripgrep fzf jq bat zoxide unzip \
-      git curl wget tmux htop strace \
-      podman buildah skopeo \
-      dnf-plugins-core npm \
-      atuin \
-    && dnf clean all
-
-RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd || true
-RUN dnf copr enable -y atim/lazygit && dnf install -y lazygit && dnf clean all
-
 # ---- mise + starship + configs from builder ----
-COPY --from=builder /tmp/starship-install.sh /tmp/
 RUN /tmp/starship-install.sh -y && rm -f /tmp/starship-install.sh
-COPY --from=builder /tmp/mise-install.sh /tmp/
 RUN /tmp/mise-install.sh && rm -f /tmp/mise-install.sh
-COPY --from=builder /tmp/etc/starship.toml /etc/starship.toml
-COPY --from=builder /tmp/etc/nu/config.nu /etc/nu/config.nu
+
+# configs
+COPY /tmp/etc/starship.toml /etc/starship.toml
+COPY /tmp/etc/nu/config.nu /etc/nu/config.nu
 
 # Activations: starship + mise + atuin
 RUN printf '\n# starship\n eval "$(starship init bash)"\n' >> /etc/bashrc && \
@@ -130,16 +72,10 @@ RUN printf '\n# starship\n eval "$(starship init bash)"\n' >> /etc/bashrc && \
     printf '\n# atuin (nushell)\natuin init nu | save --force ~/.cache/atuin/init.nu\nsource ~/.cache/atuin/init.nu\n' >> /etc/nu/config.nu
 
 # Starter mise config
-COPY --from=builder /tmp/mise.toml /root/.mise.toml
 RUN install -d -m 0755 /etc/skel && cp /root/.mise.toml /etc/skel/.mise.toml
 
 # ---- SST + OpenCode globally ----
 RUN npm install -g sst opencode-ai
-
-# ---- Example boot-only service ----
-RUN mkdir -p /etc/systemd/system
-COPY hello-on-boot.service /etc/systemd/system/hello-on-boot.service
-RUN systemctl enable hello-on-boot.service || true
 
 # ---- Entry ----
 RUN printf '%s\n' '#!/bin/sh' \
@@ -147,6 +83,25 @@ RUN printf '%s\n' '#!/bin/sh' \
                  'exec /usr/bin/nu' > /usr/local/bin/entrypoint.sh && \
     chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+
+# ============================================================
+# Stage 1: toolbox image
+# ============================================================
+FROM fedora:latest AS toolbox
+
+LABEL org.opencontainers.image.title="DevOS Toolbox (Nushell + mise + starship + Atuin + SST/OpenCode)"
+
+
+# ============================================================
+# Stage 2: bootc image (bootable OS)
+# ============================================================
+FROM quay.io/fedora/fedora-bootc:latest AS bootc
+
+# ---- Example boot-only service ----
+RUN mkdir -p /etc/systemd/system
+COPY hello-on-boot.service /etc/systemd/system/hello-on-boot.service
+RUN systemctl enable hello-on-boot.service || true
 
 LABEL org.opencontainers.image.title="DevOS BootC (Nushell + mise + starship + Atuin + SST/OpenCode)"
 LABEL org.opencontainers.image.description="Bootable OS image built with bootc; dual-use as toolbox base"
