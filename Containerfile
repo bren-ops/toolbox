@@ -1,7 +1,7 @@
 # ============================================================
 # Stage 0: builder (fetch installers, cache configs)
 # ============================================================
-FROM fedora:40 AS builder
+FROM fedora:latest AS builder
 
 RUN dnf -y install curl ca-certificates unzip git npm && dnf clean all
 
@@ -35,7 +35,7 @@ COPY mise.toml /tmp/mise.toml
 # ============================================================
 # Stage 1: toolbox image
 # ============================================================
-FROM fedora:40 AS toolbox
+FROM fedora:latest AS toolbox
 
 ENV DNF_YUM_AUTO_YES=1 DNF_YUM_PACKAGE_PROMPT_TIMEOUT=0 \
     PATH="/root/.local/bin:/usr/local/bin:${PATH}" \
@@ -48,15 +48,15 @@ RUN dnf install -y \
       git curl wget tmux htop strace \
       podman buildah skopeo \
       dnf-plugins-core npm \
-      atuin \
+      atuin dnf4 \
     && dnf clean all
 
 # Alias fd → fdfind
 RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd || true
 
 # lazygit via COPR
-RUN dnf copr enable -y atim/lazygit && \
-    dnf install -y lazygit && dnf clean all
+RUN dnf4 copr enable -y atim/lazygit && \
+    dnf4 install -y lazygit && dnf4 clean all
 
 # ---- Install mise + starship from builder ----
 COPY --from=builder /tmp/starship-install.sh /tmp/
