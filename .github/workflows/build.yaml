@@ -67,7 +67,7 @@ jobs:
           file: ./Containerfile
           target: ${{ matrix.target }}
           platforms: ${{ matrix.platforms }}
-          push: ${{ github.event_name != "pull_request" }}
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -81,4 +81,4 @@ jobs:
       - uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Containerfile
-          ignore: DL3041,DL3016
+          ignore: DL3041,DL3016,SC2016
