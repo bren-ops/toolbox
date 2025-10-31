@@ -6,6 +6,8 @@ on:
     tags: [ "v*", "V*" ]
   pull_request:
     branches: [ "main" ]
+  schedule:
+    - cron: "0 0 * * *"
 
 permissions:
   contents: read
