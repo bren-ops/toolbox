@@ -91,7 +91,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 FROM quay.io/fedora/fedora:rawhide AS fedora
 
 LABEL org.opencontainers.image.title="DevOS Toolbox (Nushell + mise + starship + Atuin + SST/OpenCode)"
-
+LABEL org.opencontainers.image.source https://github.com/bren-ops/toolbox
 
 # ============================================================
 # Stage 2: bootc image (bootable OS)
