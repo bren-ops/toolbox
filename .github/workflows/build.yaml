@@ -56,7 +56,7 @@ jobs:
             type=raw,value=${{ matrix.target }}
             type=raw,value=sha-${{ github.sha }}-${{ matrix.target }}
             type=ref,event=tag
-            type=raw,value=latest,enable=${{ and(github.ref == 'refs/heads/main', matrix.target == 'fedora') }}
+            type=raw,value=latest,enable=${{ (github.ref == 'refs/heads/main') && (matrix.target == 'fedora') }}        
 
       - name: Build & (conditionally) push
         uses: docker/build-push-action@v6
