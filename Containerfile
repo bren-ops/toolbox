@@ -1,7 +1,7 @@
 # ============================================================
-# Stage 0: builder (fetch installers, cache configs)
+# Stage 0: build
 # ============================================================
-FROM fedora:latest AS builder
+FROM quay.io/fedora/fedora:rawhide AS build
 
 RUN dnf -y install curl ca-certificates unzip git npm && dnf clean all
 
@@ -56,7 +56,7 @@ ENV DNF_YUM_AUTO_YES=1 DNF_YUM_PACKAGE_PROMPT_TIMEOUT=0 \
     PATH="/root/.local/bin:/usr/local/bin:${PATH}" \
     SHELL=/usr/bin/nu
 
-# ---- mise + starship + configs from builder ----
+# ---- mise + starship  ----
 RUN /tmp/starship-install.sh -y && rm -f /tmp/starship-install.sh
 RUN /tmp/mise-install.sh && rm -f /tmp/mise-install.sh
 
@@ -86,9 +86,9 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 
 # ============================================================
-# Stage 1: toolbox image
+# Stage 1: base image
 # ============================================================
-FROM fedora:latest AS toolbox
+FROM quay.io/fedora/fedora:rawhide AS fedora
 
 LABEL org.opencontainers.image.title="DevOS Toolbox (Nushell + mise + starship + Atuin + SST/OpenCode)"
 
@@ -96,7 +96,7 @@ LABEL org.opencontainers.image.title="DevOS Toolbox (Nushell + mise + starship +
 # ============================================================
 # Stage 2: bootc image (bootable OS)
 # ============================================================
-FROM quay.io/fedora/fedora-bootc:latest AS bootc
+FROM quay.io/fedora/fedora-bootc:rawhide AS fedora-bootc
 
 # ---- Example boot-only service ----
 RUN mkdir -p /etc/systemd/system
